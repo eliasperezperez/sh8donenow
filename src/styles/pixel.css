@@ -1,0 +1,72 @@
+/* ─── PIXEL BORDER CLIP-PATH SYSTEM ─── */
+/* NEVER use border-radius — always pixel clip-path */
+
+.pixel-sm {
+  clip-path: polygon(
+    4px 0%, calc(100% - 4px) 0%,
+    100% 4px, 100% calc(100% - 4px),
+    calc(100% - 4px) 100%, 4px 100%,
+    0% calc(100% - 4px), 0% 4px
+  );
+}
+
+.pixel-md {
+  clip-path: polygon(
+    8px 0%, calc(100% - 8px) 0%,
+    100% 8px, 100% calc(100% - 8px),
+    calc(100% - 8px) 100%, 8px 100%,
+    0% calc(100% - 8px), 0% 8px
+  );
+}
+
+.pixel-lg {
+  clip-path: polygon(
+    12px 0%, calc(100% - 12px) 0%,
+    100% 12px, 100% calc(100% - 12px),
+    calc(100% - 12px) 100%, 12px 100%,
+    0% calc(100% - 12px), 0% 12px
+  );
+}
+
+/* Pixel border via outline — uses pseudo-element trick */
+.pixel-border {
+  position: relative;
+}
+
+.pixel-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  clip-path: polygon(
+    4px 0%, calc(100% - 4px) 0%,
+    100% 4px, 100% calc(100% - 4px),
+    calc(100% - 4px) 100%, 4px 100%,
+    0% calc(100% - 4px), 0% 4px
+  );
+  background: var(--cyan);
+  z-index: -1;
+}
+
+/* Card pixel borders */
+.card-pixel {
+  clip-path: polygon(
+    8px 0%, calc(100% - 8px) 0%,
+    100% 8px, 100% calc(100% - 8px),
+    calc(100% - 8px) 100%, 8px 100%,
+    0% calc(100% - 8px), 0% 8px
+  );
+}
+
+/* Button tap animation — CSS only */
+.btn-pixel:active {
+  transform: scale(0.94);
+  transition: transform 60ms ease;
+}
+
+/* Interactive element press */
+.pressable {
+  transition: transform 60ms ease;
+}
+.pressable:active {
+  transform: scale(0.94);
+}
