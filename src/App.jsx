@@ -1,22 +1,22 @@
-import { useRef, memo, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useRef, memo, useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import StarField    from './components/StarField';
-import BottomNav    from './components/BottomNav';
-import ToastSystem  from './components/ToastSystem';
+import StarField      from './components/StarField';
+import BottomNav      from './components/BottomNav';
+import ToastSystem    from './components/ToastSystem';
 import ParticleSystem from './components/ParticleSystem';
-import PomodoroBar  from './components/PomodoroBar';
+import PomodoroBar    from './components/PomodoroBar';
+import FluxAssistant  from './components/FluxAssistant';
 import { usePomodoroProvider, PomodoroContext } from './hooks/usePomodoro';
+import { useFlux } from './hooks/useFlux';
 import Splash     from './screens/Splash';
 import Home       from './screens/Home';
 import Missions   from './screens/Missions';
 import Dashboard  from './screens/Dashboard';
 import Profile    from './screens/Profile';
 import { useGameStore } from './store/useGameStore';
-import { initAudio } from './utils/sounds';
-import { ZONE_MAP } from './utils/zones';
+import { initAudio, SFX } from './utils/sounds';
 
-/* ── Screen transition variants ── */
 const pageVariants = {
   initial: { opacity: 0, scale: 1.04 },
   animate: { opacity: 1, scale: 1, transition: { duration: 0.22, ease: 'easeOut' } },
@@ -35,6 +35,65 @@ const AnimatedPage = memo(({ children }) => (
   </motion.div>
 ));
 AnimatedPage.displayName = 'AnimatedPage';
+
+/* ── Pantalla especial del Abismo (nivel 6) ── */
+function AbyssScreen({ daysSince }) {
+  const navigate = useNavigate();
+
+  const handleRetomar = () => {
+    SFX.returnFromAbyss?.();
+    navigate('/home');
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      style={{
+        position: 'fixed', inset: 0,
+        background: '#000000',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        zIndex: 4000, padding: '32px',
+      }}
+    >
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        style={{ textAlign: 'center' }}
+      >
+        <div style={{ fontFamily: 'var(--font-ui)', fontSize: '8px', color: '#330011', letterSpacing: '4px', marginBottom: '24px', lineHeight: 2 }}>
+          SEÑAL PERDIDA
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-title)', fontWeight: 900, fontSize: '14px',
+          color: '#660022', letterSpacing: '2px', marginBottom: '16px', lineHeight: 1.6,
+        }}>
+          CICLOS SIN ACTIVIDAD: {daysSince}
+        </div>
+        <div style={{ width: '60px', height: '1px', background: '#330011', margin: '0 auto 32px' }}/>
+        <motion.button
+          whileTap={{ scale: 0.94 }}
+          onClick={handleRetomar}
+          style={{
+            background: 'transparent',
+            border: '1px solid #660022',
+            color: '#cc0033',
+            fontFamily: 'var(--font-ui)',
+            fontSize: '8px',
+            padding: '14px 28px',
+            clipPath: 'polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px)',
+            cursor: 'pointer',
+            letterSpacing: '3px',
+          }}
+        >
+          RETOMAR SEÑAL
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 /* ── Level Up overlay ── */
 function LevelUpOverlay() {
@@ -63,17 +122,17 @@ function LevelUpOverlay() {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.1 }}
           style={{ fontSize: '64px', marginBottom: '16px' }}
-        >⬆</motion.div>
-        <div style={{ fontFamily: 'var(--font-ui)', fontSize: '10px', color: 'var(--gold)', letterSpacing: '4px', marginBottom: '8px' }}>
-          ¡NIVEL SUPERIOR!
+        >▲</motion.div>
+        <div style={{ fontFamily: 'var(--font-ui)', fontSize: '10px', color: lvl.color || 'var(--gold)', letterSpacing: '4px', marginBottom: '8px' }}>
+          RANGO ELEVADO
         </div>
         <div style={{
-          fontFamily: 'var(--font-title)', fontWeight: 900, fontSize: '22px',
-          color: 'var(--cyan)', textShadow: '0 0 30px var(--cyan)',
+          fontFamily: 'var(--font-title)', fontWeight: 900, fontSize: '18px',
+          color: lvl.color || 'var(--cyan)', textShadow: `0 0 30px ${lvl.color || 'var(--cyan)'}`,
           overflow: 'hidden', whiteSpace: 'nowrap',
-          animation: 'typewriter 1s steps(22) forwards', width: '100%', textAlign: 'center',
+          animation: 'typewriter 1s steps(28) forwards', width: '100%', textAlign: 'center',
         }}>
-          NIV {lvl.level} — {lvl.name}
+          {lvl.name}
         </div>
         <div style={{ marginTop: '32px', fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)' }}>
           TOCA PARA CONTINUAR
@@ -83,7 +142,7 @@ function LevelUpOverlay() {
   );
 }
 
-/* ── Badge overlay ── */
+/* ── Badge / Transmisor overlay ── */
 function BadgeOverlay() {
   const { badgeQueue, shiftBadge } = useGameStore();
   const badge = badgeQueue[0];
@@ -118,13 +177,11 @@ function BadgeOverlay() {
           }}
         >
           <div style={{ fontFamily: 'var(--font-ui)', fontSize: '8px', color: 'var(--gold)', marginBottom: '12px', letterSpacing: '3px' }}>
-            ★ LOGRO DESBLOQUEADO
+            ★ TRANSMISOR DESBLOQUEADO
           </div>
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            style={{ fontSize: '48px', marginBottom: '8px' }}
-          >{badge.icon}</motion.div>
+          <div style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)', marginBottom: '6px' }}>
+            {badge.type?.toUpperCase() || 'LOGRO'}
+          </div>
           <div style={{ fontFamily: 'var(--font-ui)', fontSize: '10px', color: 'var(--gold)', marginBottom: '4px' }}>{badge.name}</div>
           <div style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--text)' }}>{badge.desc}</div>
           <div style={{ marginTop: '16px', fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--muted)' }}>TOCA PARA CERRAR</div>
@@ -134,9 +191,9 @@ function BadgeOverlay() {
   );
 }
 
-/* ── Zone event overlay (discovered / colonized) ── */
+/* ── Zone event overlay ── */
 function ZoneEventOverlay() {
-  const { zoneEventQueue, shiftZoneEvent, addToast } = useGameStore();
+  const { zoneEventQueue, shiftZoneEvent } = useGameStore();
   const evt = zoneEventQueue[0];
   if (!evt) return null;
 
@@ -173,7 +230,7 @@ function ZoneEventOverlay() {
           }}
         >
           <div style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: accentColor, letterSpacing: '3px', marginBottom: '12px' }}>
-            {isColonized ? '🌐 ZONA COLONIZADA' : '🔭 ZONA DESCUBIERTA'}
+            {isColonized ? 'SECTOR COLONIZADO' : 'FRECUENCIA DETECTADA'}
           </div>
 
           <motion.div
@@ -196,7 +253,7 @@ function ZoneEventOverlay() {
                 "{zone.reflection}"
               </div>
               <div style={{ marginTop: '12px', fontFamily: 'var(--font-ui)', fontSize: '6px', color: accentColor }}>
-                GUARDADO EN TU BITÁCORA
+                GUARDADO EN DIARIO DE VUELO
               </div>
             </>
           )}
@@ -217,14 +274,29 @@ function NavGuard() {
   return <BottomNav />;
 }
 
+/* ── Lógica del Abismo: colores de fondo ── */
+function getAbyssBackground(level) {
+  const bgs = ['#05050f', '#05050f', '#030309', '#030309', '#020206', '#010104', '#000000'];
+  return bgs[Math.min(level, 6)];
+}
+
 function AppInner() {
   const particleRef = useRef(null);
   const pomodoro    = usePomodoroProvider();
   const location    = useLocation();
   const isSplash    = location.pathname === '/splash' || location.pathname === '/';
-  const { _hydrate, migrateOldZones } = useGameStore();
+  const { trigger: triggerFlux } = useFlux();
 
-  // Init audio context + hydrate store settings on first render
+  const {
+    _hydrate, migrateOldZones,
+    abyssLevel, daysSinceActivity, modoEquilibrio, modoEquilibrioExpiry,
+    fluxLastWeeklyTip, markWeeklyTipShown, saveFluxMessage,
+    unlockedTransmisores,
+  } = useGameStore();
+
+  const [showAbyss, setShowAbyss] = useState(false);
+
+  // Init on mount
   useEffect(() => {
     _hydrate?.();
     migrateOldZones?.();
@@ -234,12 +306,72 @@ function AppInner() {
       window.removeEventListener('pointerdown', handleFirst);
     };
     window.addEventListener('pointerdown', handleFirst, { once: true });
+
+    // Verificar abismo
+    const state = useGameStore.getState();
+    if ((state.abyssLevel || 0) >= 6 && location.pathname !== '/splash') {
+      setTimeout(() => setShowAbyss(true), 500);
+    }
+
+    if ((state.abyssLevel || 0) >= 3) {
+      setTimeout(() => triggerFlux('inactivity3Days'), 1000);
+    }
+
+    // Weekly tip
+    const week = getWeekKey();
+    if (state.fluxLastWeeklyTip !== week) {
+      setTimeout(() => {
+        triggerFlux('weeklyTip');
+        markWeeklyTipShown();
+      }, 3000);
+    }
+
+    // Modo equilibrio expirado
+    if (state.modoEquilibrio && state.modoEquilibrioExpiry && Date.now() > new Date(state.modoEquilibrioExpiry).getTime()) {
+      useGameStore.setState({ modoEquilibrio: false });
+    }
   }, []);
+
+  // Abismo: escuchar cambios de nivel
+  useEffect(() => {
+    if (abyssLevel >= 6 && !isSplash) {
+      setShowAbyss(true);
+    } else {
+      setShowAbyss(false);
+    }
+  }, [abyssLevel, isSplash]);
+
+  const bgColor = getAbyssBackground(abyssLevel || 0);
 
   return (
     <PomodoroContext.Provider value={pomodoro}>
-      {/* Background — never remounts */}
-      <StarField />
+      {/* Abismo background */}
+      <div style={{
+        position: 'fixed', inset: 0,
+        background: bgColor,
+        transition: 'background 2s ease',
+        zIndex: -1,
+      }} />
+
+      {/* Grieta del Abismo */}
+      {(abyssLevel || 0) >= 2 && !isSplash && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, height: `${(abyssLevel - 1) * 4}%`,
+          pointerEvents: 'none', zIndex: 2, overflow: 'hidden',
+          opacity: Math.min((abyssLevel - 1) * 0.15, 0.6),
+          transition: 'opacity 2s ease, height 2s ease',
+        }}>
+          <svg width="100%" height="100%" viewBox="0 0 400 60" preserveAspectRatio="none">
+            <polyline points="0,0 40,20 80,8 120,35 160,15 200,45 240,20 280,50 320,10 360,40 400,5"
+              stroke="#ff006e" strokeWidth="2" fill="none" opacity="0.6"/>
+            <polyline points="0,60 50,40 100,55 150,30 200,50 250,25 300,45 350,20 400,50"
+              stroke="#cc0033" strokeWidth="1" fill="none" opacity="0.4"/>
+          </svg>
+        </div>
+      )}
+
+      {/* Background stars */}
+      <StarField abyssLevel={abyssLevel || 0} />
 
       {/* Particle system */}
       <ParticleSystem ref={particleRef} />
@@ -252,10 +384,16 @@ function AppInner() {
       <BadgeOverlay />
       <ZoneEventOverlay />
 
+      {/* Flux assistant */}
+      <FluxAssistant />
+
       {/* Pomodoro floating bar */}
       <PomodoroBar pomodoro={pomodoro} />
 
-      {/* Screen content with transitions */}
+      {/* Pantalla especial del Abismo */}
+      {showAbyss && <AbyssScreen daysSince={daysSinceActivity} />}
+
+      {/* Screen content */}
       <div style={{
         position: 'relative', zIndex: 1,
         width: '100%', height: '100%',
@@ -278,6 +416,14 @@ function AppInner() {
       <NavGuard />
     </PomodoroContext.Provider>
   );
+}
+
+function getWeekKey() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(new Date().setDate(diff));
+  return monday.toISOString().slice(0, 10);
 }
 
 export default function App() {

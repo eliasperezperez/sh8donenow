@@ -1,12 +1,82 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
 import MissionCard from '../components/MissionCard';
 import { formatDateLabel, todayKey } from '../utils/dates';
 import { SFX } from '../utils/sounds';
 
+/* ── Iconos pixel art de recursos ── */
+function IgnicionIcon({ lit = true }) {
+  return (
+    <svg width="10" height="14" viewBox="0 0 10 14" fill="none" style={{ opacity: lit ? 1 : 0.3 }}>
+      <rect x="4" y="0" width="2" height="3" fill="#ff8c42"/>
+      <rect x="2" y="2" width="2" height="5" fill="#ff8c42"/>
+      <rect x="6" y="2" width="2" height="3" fill="#ff8c42"/>
+      <rect x="0" y="5" width="2" height="5" fill="#ff8c42"/>
+      <rect x="4" y="5" width="2" height="7" fill="#ff006e"/>
+      <rect x="8" y="5" width="2" height="3" fill="#ff8c42"/>
+      <rect x="2" y="9" width="6" height="3" fill="#ff006e"/>
+    </svg>
+  );
+}
+
+function RecursoHeader({ fluxo, qron, igniciones, amplificadorActivo, modoEquilibrio, onTap }) {
+  const flames = [0, 1, 2].map(i => i < igniciones);
+
+  return (
+    <div
+      onClick={onTap}
+      style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '6px 0', cursor: 'pointer',
+        border: modoEquilibrio ? '1px solid var(--gold)' : '1px solid transparent',
+        borderRadius: 0,
+        animation: modoEquilibrio ? 'breathe-glow 2s ease-in-out infinite' : 'none',
+        paddingLeft: modoEquilibrio ? '6px' : '0',
+        transition: 'border 0.5s',
+      }}
+    >
+      {/* FLX */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--muted)' }}>FLX</span>
+        <span style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '14px', color: 'var(--pink)' }}>
+          {(fluxo || 0).toLocaleString()}
+        </span>
+        {amplificadorActivo && (
+          <motion.span
+            animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 0.5, repeat: Infinity }}
+            style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--gold)', marginLeft: '2px' }}
+          >x2</motion.span>
+        )}
+      </div>
+
+      {/* QRN */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--muted)' }}>QRN</span>
+        <span style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '14px', color: 'var(--gold)' }}>
+          {qron || 0}
+        </span>
+      </div>
+
+      {/* Igniciones */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+        {igniciones === 0
+          ? <span style={{ fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--dim)' }}>—</span>
+          : flames.map((lit, i) => <IgnicionIcon key={i} lit={lit} />)
+        }
+      </div>
+    </div>
+  );
+}
+
 export default function Home({ particleRef }) {
-  const { missions, pendingMissions, getDailyProgress, getPriorityMission, dayStreak } = useGameStore();
+  const {
+    missions, pendingMissions, getDailyProgress, getPriorityMission, dayStreak,
+    fluxo, qron, igniciones, amplificadorActivo, modoEquilibrio, modoEquilibrioExpiry,
+  } = useGameStore();
+
+  const navigate = useNavigate();
 
   const progress   = getDailyProgress();
   const priority   = getPriorityMission();
@@ -15,6 +85,9 @@ export default function Home({ particleRef }) {
   const pending = missions.filter(m => !m.completedToday && !m.overdue);
   const done    = missions.filter(m => m.completedToday);
   const overdue = pendingMissions.filter(m => !m.completedToday);
+
+  // Modo equilibrio expirado
+  const modoEqActivo = modoEquilibrio && modoEquilibrioExpiry && Date.now() < new Date(modoEquilibrioExpiry).getTime();
 
   // Overdue alert sound on mount
   useEffect(() => {
@@ -27,8 +100,8 @@ export default function Home({ particleRef }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
-      <header style={{ padding: '16px 16px 10px', flexShrink: 0, borderBottom: '1px solid var(--dim)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header style={{ padding: '12px 16px 8px', flexShrink: 0, borderBottom: '1px solid var(--dim)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
           <div>
             <div style={{ fontFamily: 'var(--font-title)', fontWeight: 900, fontSize: '22px', color: 'var(--cyan)', letterSpacing: '3px', animation: 'breathe-glow 3s ease-in-out infinite' }}>
               SH8DONE
@@ -47,7 +120,15 @@ export default function Home({ particleRef }) {
                 padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px',
               }}
             >
-              <span style={{ fontSize: '14px' }}>🔥</span>
+              <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
+                <rect x="5" y="0" width="2" height="3" fill="var(--pink)"/>
+                <rect x="3" y="2" width="2" height="5" fill="var(--pink)"/>
+                <rect x="7" y="2" width="2" height="3" fill="var(--pink)"/>
+                <rect x="1" y="5" width="2" height="5" fill="var(--orange)"/>
+                <rect x="5" y="5" width="2" height="7" fill="var(--pink)"/>
+                <rect x="9" y="5" width="2" height="3" fill="var(--orange)"/>
+                <rect x="3" y="9" width="6" height="3" fill="var(--orange)"/>
+              </svg>
               <div>
                 <div style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '16px', color: 'var(--pink)', lineHeight: 1 }}>{dayStreak}</div>
                 <div style={{ fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--muted)' }}>RACHA</div>
@@ -56,14 +137,24 @@ export default function Home({ particleRef }) {
           )}
         </div>
 
+        {/* Recursos visibles */}
+        <RecursoHeader
+          fluxo={fluxo}
+          qron={qron}
+          igniciones={igniciones || 0}
+          amplificadorActivo={amplificadorActivo}
+          modoEquilibrio={modoEqActivo}
+          onTap={() => navigate('/profile?tab=inventario')}
+        />
+
         {/* Progress bar */}
-        <div style={{ marginTop: '12px' }}>
+        <div style={{ marginTop: '6px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)' }}>
-              {progress.done}/{progress.total} MISIONES
+              {progress.done}/{progress.total} SEÑALES
             </span>
             <span style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--cyan)' }}>
-              {progress.pts} PTS HOY
+              {progress.pts} FLX HOY
             </span>
           </div>
           <div style={{
@@ -87,11 +178,11 @@ export default function Home({ particleRef }) {
       {/* Scrollable content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-        {/* Priority mission */}
+        {/* Misión prioritaria */}
         {priority && (
           <section>
             <div style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--gold)', marginBottom: '8px', letterSpacing: '2px' }}>
-              ★ MISIÓN PRIORITARIA
+              ★ SEÑAL PRIORITARIA
             </div>
             <MissionCard mission={priority} highlighted particleRef={particleRef} />
           </section>
@@ -102,7 +193,7 @@ export default function Home({ particleRef }) {
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <div className="ship-float" style={{ fontSize: '56px', marginBottom: '16px', filter: 'drop-shadow(0 0 12px var(--cyan))' }}>🚀</div>
             <div style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '13px', color: 'var(--cyan)', marginBottom: '8px' }}>
-              MISIÓN DE INICIO
+              CABINA EN SILENCIO
             </div>
             <div style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)', lineHeight: 2 }}>
               CREA TU PRIMERA MISIÓN<br />EN LA PESTAÑA MISIONES
@@ -110,7 +201,7 @@ export default function Home({ particleRef }) {
           </div>
         )}
 
-        {/* Perfect day */}
+        {/* Señal confirmada (día perfecto) */}
         {pending.length === 0 && done.length > 0 && overdue.length === 0 && (
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
@@ -122,12 +213,12 @@ export default function Home({ particleRef }) {
             }}
           >
             <div style={{ fontSize: '32px', marginBottom: '8px' }}>⭐</div>
-            <div style={{ fontFamily: 'var(--font-title)', fontWeight: 900, fontSize: '16px', color: 'var(--green)' }}>¡DÍA PERFECTO!</div>
-            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)', marginTop: '4px' }}>TODAS LAS MISIONES COMPLETADAS</div>
+            <div style={{ fontFamily: 'var(--font-title)', fontWeight: 900, fontSize: '16px', color: 'var(--green)' }}>DÍA PERFECTO</div>
+            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)', marginTop: '4px' }}>TODAS LAS SEÑALES CONFIRMADAS</div>
           </motion.div>
         )}
 
-        {/* Pending (excl priority) */}
+        {/* Pendientes (excl prioritaria) */}
         {pending.filter(m => m.id !== priority?.id).length > 0 && (
           <section>
             <div style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)', marginBottom: '8px', letterSpacing: '1px' }}>PENDIENTES</div>
@@ -139,11 +230,11 @@ export default function Home({ particleRef }) {
           </section>
         )}
 
-        {/* Overdue */}
+        {/* Señales perdidas (overdue) */}
         {overdue.length > 0 && (
           <section>
             <div style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--pink)', marginBottom: '8px', letterSpacing: '1px' }}>
-              ⚠ PENDIENTES DE DÍAS ANTERIORES
+              ⚠ SEÑALES PERDIDAS
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {overdue.map(m => <MissionCard key={m.id} mission={m} particleRef={particleRef} />)}
@@ -151,11 +242,11 @@ export default function Home({ particleRef }) {
           </section>
         )}
 
-        {/* Completed */}
+        {/* Confirmadas */}
         {done.length > 0 && (
           <section>
             <div style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)', marginBottom: '8px', letterSpacing: '1px' }}>
-              COMPLETADAS ({done.length})
+              SEÑALES CONFIRMADAS ({done.length})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {done.map(m => <MissionCard key={m.id} mission={m} particleRef={particleRef} />)}

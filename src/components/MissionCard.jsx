@@ -32,7 +32,7 @@ function FloatingPoints({ pts, color }) {
 }
 
 const MissionCard = memo(({ mission, highlighted = false, particleRef }) => {
-  const { completeMission, dayStreak, addToast } = useGameStore();
+  const { completeMission, dayStreak, addToast, amplificadorActivo } = useGameStore();
   const pomodoro    = usePomodoro();
   const cardRef     = useRef(null);
   const [showPts, setShowPts]     = useState(null);
@@ -65,9 +65,9 @@ const MissionCard = memo(({ mission, highlighted = false, particleRef }) => {
     // Store update
     const result = completeMission(mission.id);
     if (result) {
-      addToast({ type: 'success', title: '¡MISIÓN COMPLETADA!', text: `+${result.pts} PTS`, duration: 2500 });
+      addToast({ type: 'success', title: 'SEÑAL CONFIRMADA', text: `+${result.pts} FLX`, duration: 2500 });
       if (result.allDone) {
-        addToast({ type: 'success', title: '🌟 DÍA PERFECTO', text: '¡Todas las misiones listas!', duration: 4000 });
+        addToast({ type: 'success', title: 'DÍA PERFECTO', text: 'Todas las señales confirmadas', duration: 4000 });
         particleRef?.current?.rain?.(20);
       }
     }
@@ -171,8 +171,14 @@ const MissionCard = memo(({ mission, highlighted = false, particleRef }) => {
 
         {/* Points + actions */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
-          <div style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '16px', color: mc }}>{pts}</div>
-          <div style={{ fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--muted)' }}>PTS</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+            <div style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '16px', color: mc }}>{amplificadorActivo && !mission.completedToday ? pts * 2 : pts}</div>
+            {amplificadorActivo && !mission.completedToday && (
+              <motion.span animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 0.5, repeat: Infinity }}
+                style={{ fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--gold)' }}>x2</motion.span>
+            )}
+          </div>
+          <div style={{ fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--muted)' }}>FLX</div>
 
           {!mission.completedToday && (
             <div style={{ display: 'flex', gap: '4px' }}>
