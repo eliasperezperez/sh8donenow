@@ -1,5 +1,6 @@
 import { useEffect, useRef, memo } from 'react';
 import { useGameStore } from '../store/useGameStore';
+import { SFX } from '../utils/sounds';
 
 /* Isolated canvas game — its own RAF loop, cleanup on unmount */
 const SpaceGame = memo(({ onClose }) => {
@@ -38,6 +39,7 @@ const SpaceGame = memo(({ onClose }) => {
     };
     const onFire = () => {
       gs.bullets.push({ x: gs.ship.x, y: gs.ship.y - 20, vy: -8 });
+      SFX.jump();
     };
 
     if (window.DeviceOrientationEvent) {
@@ -90,6 +92,7 @@ const SpaceGame = memo(({ onClose }) => {
           if (Math.abs(b.x - e.x) < 16 && Math.abs(b.y - e.y) < 16) {
             hitBullets.add(bi);
             hitEnemies.add(ei);
+            if (gs.score < 5) SFX.gamePoint();
             gs.score = Math.min(gs.score + 1, 5);
           }
         });
@@ -145,6 +148,8 @@ const SpaceGame = memo(({ onClose }) => {
     stateRef.current.running = false;
     if (score > 0) {
       addFlash({ type: 'success', title: `BONUS: +${score} PTS`, text: '¡Buen piloto espacial!', duration: 3000 });
+    } else {
+      SFX.gameover();
     }
     onClose?.(score);
   };

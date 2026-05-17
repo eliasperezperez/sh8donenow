@@ -1,29 +1,30 @@
 import { useRef, useState, memo } from 'react';
+import { motion } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 import { calcPoints } from '../utils/scoring';
-import { RUBROS } from '../utils/scoring';
+import { ZONE_MAP, ZONES, migrateZone } from '../utils/zones';
 import { usePomodoro } from '../hooks/usePomodoro';
+import { SFX } from '../utils/sounds';
 
-const RUBRO_MAP = Object.fromEntries(RUBROS.map(r => [r.id, r]));
 const ENERGIA_COLORS = { alta: 'var(--pink)', media: 'var(--gold)', baja: 'var(--green)' };
 
-function FloatingPoints({ pts, color, onDone }) {
+function FloatingPoints({ pts, color }) {
   return (
     <div
+      aria-hidden="true"
       style={{
-        position: 'absolute',
-        top: '50%', left: '50%',
-        transform: 'translate(-50%,-50%)',
-        fontFamily: 'var(--font-title)',
-        fontWeight: 900,
-        fontSize: '20px',
+        position:       'absolute',
+        top:            '50%',
+        left:           '50%',
+        fontFamily:     'var(--font-title)',
+        fontWeight:     900,
+        fontSize:       '20px',
         color,
-        pointerEvents: 'none',
-        zIndex: 50,
-        animation: 'float-up 900ms ease-out forwards',
-        whiteSpace: 'nowrap',
+        pointerEvents:  'none',
+        zIndex:         50,
+        animation:      'float-up 900ms ease-out forwards',
+        whiteSpace:     'nowrap',
       }}
-      onAnimationEnd={onDone}
     >
       +{pts} PTS
     </div>
@@ -31,20 +32,24 @@ function FloatingPoints({ pts, color, onDone }) {
 }
 
 const MissionCard = memo(({ mission, highlighted = false, particleRef }) => {
-  const { completeMission, dayStreak, addFlash } = useGameStore();
-  const pomodoro = usePomodoro();
-  const cardRef = useRef(null);
-  const [showPts, setShowPts] = useState(null);
-  const [sweeping, setSweeping] = useState(false);
+  const { completeMission, dayStreak, addToast } = useGameStore();
+  const pomodoro    = usePomodoro();
+  const cardRef     = useRef(null);
+  const [showPts, setShowPts]     = useState(null);
+  const [sweeping, setSweeping]   = useState(false);
+  const [pressing, setPressing]   = useState(false);
 
-  const rubro = RUBRO_MAP[mission.rubroId] || RUBROS[0];
-  const pts = calcPoints(mission.minutes, mission.rubroId, dayStreak, mission.pomosToday || 0);
-  const mc = rubro.color;
+  // Zone resolution with legacy migration
+  const zoneId = migrateZone(mission.zoneId || mission.rubroId || 'mision');
+  const zone   = ZONE_MAP[zoneId] || ZONES[0];
+  const mc     = zone.color;
+  const pts    = calcPoints(mission.minutes, zoneId, dayStreak, mission.pomosToday || 0);
 
   const handleComplete = () => {
     if (mission.completedToday) return;
+    SFX.check();
 
-    // Burst particles at card center
+    // Particles burst
     if (particleRef?.current && cardRef.current) {
       const rect = cardRef.current.getBoundingClientRect();
       particleRef.current.burst(rect.left + rect.width / 2, rect.top + rect.height / 2, 10, mc);
@@ -52,178 +57,156 @@ const MissionCard = memo(({ mission, highlighted = false, particleRef }) => {
 
     // Sweep animation
     setSweeping(true);
-    setTimeout(() => setSweeping(false), 400);
+    setTimeout(() => setSweeping(false), 600);
 
-    // Show floating points
+    // Floating +pts
     setShowPts(pts);
 
-    // Complete in store
+    // Store update
     const result = completeMission(mission.id);
     if (result) {
-      addFlash({ type: 'success', title: '¡MISIÓN COMPLETADA!', text: `+${result.pts} puntos ganados`, duration: 2500 });
+      addToast({ type: 'success', title: '¡MISIÓN COMPLETADA!', text: `+${result.pts} PTS`, duration: 2500 });
       if (result.allDone) {
-        addFlash({ type: 'success', title: '🌟 DÍA PERFECTO 🌟', text: '¡Todas las misiones completadas!', duration: 4000 });
-        particleRef?.current?.rain(20);
+        addToast({ type: 'success', title: '🌟 DÍA PERFECTO', text: '¡Todas las misiones listas!', duration: 4000 });
+        particleRef?.current?.rain?.(20);
       }
     }
   };
 
   const handlePomodoro = (e) => {
     e.stopPropagation();
-    if (pomodoro.mission?.id === mission.id) {
+    if (pomodoro?.mission?.id === mission.id) {
       pomodoro.stop();
     } else {
-      pomodoro.start(mission, 25);
-      addFlash({ type: 'info', title: 'POMODORO INICIADO', text: `${mission.title} — 25 min`, duration: 2000 });
+      pomodoro?.start(mission, 25);
+      SFX.pomodoroStart();
+      addToast({ type: 'info', title: 'POMODORO', text: `${mission.title} — 25 min`, duration: 2000 });
     }
   };
 
-  const isPomoActive = pomodoro.mission?.id === mission.id;
+  const isPomoActive = pomodoro?.mission?.id === mission.id;
 
   return (
-    <div
+    <motion.div
       ref={cardRef}
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: mission.completedToday ? 0.45 : 1, x: 0 }}
+      transition={{ duration: 0.25 }}
+      whileHover={!mission.completedToday ? { boxShadow: `0 0 16px ${mc}30` } : {}}
       style={{
-        position: 'relative',
+        position:   'relative',
         background: mission.completedToday ? 'var(--bg2)' : 'var(--bg3)',
-        clipPath: 'polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px)',
-        border: highlighted && !mission.completedToday
-          ? `1px solid ${mc}`
-          : '1px solid var(--dim)',
-        opacity: mission.completedToday ? 0.4 : 1,
-        filter: mission.completedToday ? 'grayscale(60%)' : 'none',
-        transition: 'opacity 400ms ease, filter 400ms ease',
-        overflow: 'hidden',
-        padding: '12px',
-        animation: highlighted && !mission.completedToday ? 'border-breathe 2s ease-in-out infinite' : 'none',
+        clipPath:   'polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px)',
+        borderLeft: `3px solid ${mission.completedToday ? 'var(--muted)' : mc}`,
+        filter:     mission.completedToday ? 'grayscale(50%)' : 'none',
+        overflow:   'hidden',
+        padding:    '12px 12px 12px 14px',
+        cursor:     mission.completedToday ? 'default' : 'pointer',
+        transition: 'filter 400ms ease, border-left-width 150ms ease',
+        borderLeftWidth: highlighted && !mission.completedToday ? '4px' : '3px',
       }}
     >
       {/* Sweep light on complete */}
       {sweeping && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: `linear-gradient(90deg, transparent, ${mc}40, transparent)`,
-            animation: 'sweep-light 300ms ease-out forwards',
-            pointerEvents: 'none',
-            zIndex: 10,
-          }}
-        />
+        <div aria-hidden="true" style={{
+          position: 'absolute', inset: 0,
+          background: `linear-gradient(90deg, transparent 0%, ${mc}50 50%, transparent 100%)`,
+          animation: 'sweep-light 400ms ease-out forwards',
+          pointerEvents: 'none', zIndex: 10,
+        }} />
       )}
 
       {/* Floating points */}
       {showPts !== null && (
-        <FloatingPoints pts={showPts} color={mc} onDone={() => setShowPts(null)} />
+        <FloatingPoints pts={showPts} color={mc} />
       )}
 
       {/* Overdue badge */}
       {mission.overdue && (
         <div style={{
           position: 'absolute', top: '8px', right: '8px',
-          fontFamily: 'var(--font-ui)', fontSize: '6px',
-          color: 'var(--pink)', border: '1px solid var(--pink)',
-          padding: '2px 4px',
+          fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--pink)',
+          border: '1px solid var(--pink)', padding: '2px 4px',
           clipPath: 'polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px)',
         }}>PENDIENTE</div>
       )}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-        {/* Rubro icon + color */}
-        <div style={{
-          width: '36px', height: '36px', flexShrink: 0,
-          background: `${mc}20`,
-          clipPath: 'polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '18px',
-          border: `1px solid ${mc}40`,
-          transition: 'transform 200ms ease',
-        }}>
-          {rubro.emoji}
-        </div>
+        {/* Zone icon */}
+        <motion.div
+          whileHover={!mission.completedToday ? { scale: 1.15, rotate: 5 } : {}}
+          transition={{ duration: 0.2 }}
+          style={{
+            width: '36px', height: '36px', flexShrink: 0,
+            background: `${mc}18`,
+            clipPath: 'polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '18px',
+            border: `1px solid ${mc}35`,
+          }}
+        >
+          {zone.emoji}
+        </motion.div>
 
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontFamily: 'var(--font-title)',
-            fontWeight: 700, fontSize: '13px',
+            fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '13px',
             color: mission.completedToday ? 'var(--muted)' : 'var(--text)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {mission.completedToday && <span style={{ marginRight: '6px', color: 'var(--green)' }}>✓</span>}
             {mission.title}
           </div>
-
-          <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: mc }}>{rubro.label}</span>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)' }}>
-              {mission.minutes}MIN
-            </span>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: mc }}>{zone.short}</span>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--muted)' }}>{mission.minutes}MIN</span>
             <span style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: ENERGIA_COLORS[mission.energia] }}>
               {mission.energia?.toUpperCase()}
             </span>
-            {mission.recurrent && (
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--purple)' }}>↻</span>
-            )}
+            {mission.recurrent && <span style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--purple)' }}>↻</span>}
+            {isPomoActive && <span style={{ fontFamily: 'var(--font-ui)', fontSize: '7px', color: 'var(--cyan)', animation: 'breathe-scale 1.5s ease-in-out infinite' }}>⏱ {pomodoro.timeStr}</span>}
           </div>
         </div>
 
         {/* Points + actions */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
-          <div style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '16px', color: mc }}>
-            {pts}
-          </div>
+          <div style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '16px', color: mc }}>{pts}</div>
           <div style={{ fontFamily: 'var(--font-ui)', fontSize: '6px', color: 'var(--muted)' }}>PTS</div>
 
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {/* Pomodoro button */}
-            {!mission.completedToday && (
-              <button
+          {!mission.completedToday && (
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <motion.button
+                whileTap={{ scale: 0.88 }}
                 onClick={handlePomodoro}
-                className="pressable"
                 style={{
                   background: isPomoActive ? 'var(--cyan)' : 'var(--dim)',
-                  border: 'none',
-                  color: isPomoActive ? 'var(--bg)' : 'var(--text)',
+                  border: 'none', color: isPomoActive ? 'var(--bg)' : 'var(--text)',
                   width: '28px', height: '28px',
                   clipPath: 'polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px)',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '12px',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px',
                 }}
-                aria-label="Iniciar pomodoro"
-              >
-                ⏱
-              </button>
-            )}
+                aria-label="Pomodoro"
+              >⏱</motion.button>
 
-            {/* Complete button */}
-            {!mission.completedToday && (
-              <button
+              <motion.button
+                whileTap={{ scale: [null, 0.88, 1.05, 1] }}
+                transition={{ duration: 0.18 }}
                 onClick={handleComplete}
-                className="pressable"
                 style={{
-                  background: mc,
-                  border: 'none',
-                  color: 'var(--bg)',
+                  background: mc, border: 'none', color: 'var(--bg)',
                   width: '28px', height: '28px',
                   clipPath: 'polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px)',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'var(--font-ui)',
-                  fontSize: '10px',
-                  fontWeight: 700,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--font-ui)', fontSize: '10px', fontWeight: 700,
                 }}
-                aria-label="Completar misión"
-              >
-                ✓
-              </button>
-            )}
-          </div>
+                aria-label="Completar"
+              >✓</motion.button>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 });
 

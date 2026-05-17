@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect, createContext, useContext } from 'react';
 import { useGameStore } from '../store/useGameStore';
+import { SFX } from '../utils/sounds';
 
 const DEFAULT_DURATION = 25 * 60;
 
@@ -46,12 +47,15 @@ export function usePomodoroProvider() {
             incrementPomoCount(missionRef.current.id);
             addFlash({ type: 'success', title: '¡POMODORO!', text: 'Toma un descanso.', duration: 3000 });
             if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+            SFX.pomodoroAlarm();
+            setTimeout(() => SFX.breakStart(), 700);
             setPhase('break');
             return 5 * 60;
           } else {
             setRunning(false);
             setActivePomo(null);
             addFlash({ type: 'info', title: 'DESCANSO TERMINADO', text: '¡Listo para otra ronda!', duration: 2000 });
+            SFX.breakEnd();
             return DEFAULT_DURATION;
           }
         }

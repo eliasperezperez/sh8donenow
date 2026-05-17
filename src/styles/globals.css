@@ -16,37 +16,36 @@
   --text:   #b0b0c8;
   --muted:  #44445a;
 
-  /* Rubro colors */
-  --rubro-creativo:    #ff006e;
-  --rubro-conocimiento:#8b5cf6;
-  --rubro-fisico:      #39d353;
-  --rubro-rutina:      #00f5ff;
-  --rubro-social:      #ffbe0b;
+  /* Zone colors */
+  --zone-mision:   #ff006e;
+  --zone-cuerpo:   #00f5ff;
+  --zone-mente:    #ffbe0b;
+  --zone-vinculos: #c77dff;
+  --zone-descanso: #39d353;
+  --zone-creacion: #ff8c42;
+  --zone-hogar:    #8b5cf6;
 
-  /* Font families */
-  --font-title:  'Orbitron', monospace;
-  --font-ui:     'Press Start 2P', monospace;
-  --font-body:   'Orbitron', monospace;
+  /* Legacy rubro compat */
+  --rubro-creativo:    var(--zone-creacion);
+  --rubro-conocimiento:var(--zone-mente);
+  --rubro-fisico:      var(--zone-cuerpo);
+  --rubro-rutina:      var(--zone-hogar);
+  --rubro-social:      var(--zone-vinculos);
 
-  /* Safe area */
+  /* Fonts */
+  --font-title: 'Orbitron', monospace;
+  --font-ui:    'Press Start 2P', monospace;
+  --font-body:  'Orbitron', monospace;
+
+  /* Layout */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --nav-height: 56px;
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --nav-height:  56px;
 }
 
 /* ─── RESET & BASE ─── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-
-html, body, #root {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body, #root { width: 100%; height: 100%; overflow: hidden; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -57,119 +56,79 @@ body {
   cursor: crosshair;
   overscroll-behavior: none;
 }
-
-/* Custom scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg2); }
 ::-webkit-scrollbar-thumb { background: var(--muted); }
 
-/* ─── TYPOGRAPHY CLASSES ─── */
-.font-title-xl  { font-family: var(--font-title); font-weight: 900; font-size: 22px; color: var(--cyan); }
-.font-title-lg  { font-family: var(--font-title); font-weight: 900; font-size: 18px; color: var(--cyan); }
-.font-title-md  { font-family: var(--font-title); font-weight: 700; font-size: 14px; }
-.font-title-sm  { font-family: var(--font-title); font-weight: 700; font-size: 12px; }
-.font-ui        { font-family: var(--font-ui); font-size: 8px; line-height: 1.8; }
-.font-ui-sm     { font-family: var(--font-ui); font-size: 7px; line-height: 1.8; }
-.font-data      { font-family: var(--font-title); font-weight: 700; }
-.font-body      { font-family: var(--font-body); font-weight: 400; font-size: 11px; }
-
-/* ─── SCANLINE OVERLAY (static, CSS only) ─── */
+/* ─── SCANLINE ─── */
 body::after {
   content: '';
   position: fixed;
   inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.08) 2px,
-    rgba(0, 0, 0, 0.08) 4px
-  );
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
   pointer-events: none;
   z-index: 9998;
 }
 
+/* ─── TYPOGRAPHY ─── */
+.font-title-xl { font-family: var(--font-title); font-weight: 900; font-size: 22px; color: var(--cyan); }
+.font-title-lg { font-family: var(--font-title); font-weight: 900; font-size: 18px; color: var(--cyan); }
+.font-title-md { font-family: var(--font-title); font-weight: 700; font-size: 14px; }
+.font-ui       { font-family: var(--font-ui); font-size: 8px; line-height: 1.8; }
+.font-ui-sm    { font-family: var(--font-ui); font-size: 7px; line-height: 1.8; }
+.font-body     { font-family: var(--font-body); font-weight: 400; font-size: 11px; }
+
 /* ─── @KEYFRAMES ─── */
 
-/* StarField twinkles */
+/* StarField — sin shooting stars */
 @keyframes twinkle-slow {
-  0%, 100% { opacity: 0.2; transform: scale(1); }
-  50%       { opacity: 0.8; transform: scale(1.2); }
+  0%, 100% { opacity: 0.08; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(1.15); }
 }
 @keyframes twinkle-medium {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50%       { opacity: 1;   transform: scale(1.4); }
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50%       { opacity: 0.50; transform: scale(1.25); }
 }
 @keyframes twinkle-fast {
-  0%, 100% { opacity: 0.5; transform: scale(1);   filter: blur(0px); }
-  50%       { opacity: 1;   transform: scale(1.6); filter: blur(1px); box-shadow: 0 0 6px var(--cyan); }
-}
-@keyframes shooting-star {
-  0%   { transform: translate(0,0) rotate(45deg); opacity: 0; }
-  5%   { opacity: 1; }
-  100% { transform: translate(200px, 200px) rotate(45deg); opacity: 0; }
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50%       { opacity: 0.80; transform: scale(1.4); box-shadow: 0 0 4px var(--cyan); }
 }
 
-/* Ambient breathing */
+/* Breathing / ambient */
 @keyframes breathe-glow {
-  0%, 100% { text-shadow: 0 0 8px var(--cyan); opacity: 0.8; }
+  0%, 100% { text-shadow: 0 0 8px var(--cyan); opacity: 0.85; }
   50%       { text-shadow: 0 0 20px var(--cyan), 0 0 40px var(--cyan); opacity: 1; }
 }
 @keyframes breathe-scale {
   0%, 100% { transform: scale(1); }
   50%       { transform: scale(1.03); }
 }
+@keyframes breathe-scale-fab {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.04); }
+}
 @keyframes border-breathe {
   0%, 100% { opacity: 0.4; }
   50%       { opacity: 1; }
 }
 
-/* Slide transitions */
-@keyframes slide-up {
-  from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-@keyframes slide-down {
-  from { transform: translateY(-100%); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
-}
-@keyframes slide-left {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
-@keyframes slide-right {
-  from { transform: translateX(-100%); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
-}
-@keyframes slide-out-left {
-  from { transform: translateX(0);     opacity: 1; }
-  to   { transform: translateX(-100%); opacity: 0; }
-}
-@keyframes slide-out-right {
-  from { transform: translateX(0);    opacity: 1; }
-  to   { transform: translateX(100%); opacity: 0; }
-}
+/* Slides */
+@keyframes slide-up    { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes slide-down  { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes slide-left  { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slide-right { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slide-out-left  { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-100%); opacity: 0; } }
+@keyframes slide-out-right { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
 
 /* Fade */
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes fade-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
+@keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
 
-/* Celebration */
+/* Celebrations */
 @keyframes flash-white {
   0%   { background: rgba(255,255,255,0); }
-  30%  { background: rgba(255,255,255,0.25); }
+  30%  { background: rgba(255,255,255,0.22); }
   100% { background: rgba(255,255,255,0); }
-}
-@keyframes flash-cyan {
-  0%   { box-shadow: 0 0 0 0 rgba(0,245,255,0); }
-  30%  { box-shadow: 0 0 0 4px rgba(0,245,255,0.5); }
-  100% { box-shadow: 0 0 0 0 rgba(0,245,255,0); }
 }
 @keyframes bounce-in {
   0%   { transform: scale(0.5); opacity: 0; }
@@ -181,102 +140,58 @@ body::after {
   from { width: 0; }
   to   { width: 100%; }
 }
-
-/* Sweep light on mission complete */
 @keyframes sweep-light {
   from { transform: translateX(-100%); }
-  to   { transform: translateX(100%); }
+  to   { transform: translateX(200%); }
 }
-
-/* Spin once for badges */
 @keyframes spin-once {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-
-/* Number tick-up */
 @keyframes tick-up {
   0%   { transform: translateY(0); }
   50%  { transform: translateY(-4px); }
   100% { transform: translateY(0); }
 }
-
-/* Pixel rain for día perfecto */
-@keyframes pixel-rain {
-  0%   { transform: translateY(-20px); opacity: 1; }
-  100% { transform: translateY(100vh); opacity: 0; }
-}
-
-/* Floating points */
 @keyframes float-up {
-  0%   { transform: translateY(0);   opacity: 1; }
-  100% { transform: translateY(-70px); opacity: 0; }
+  0%   { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, -70px); opacity: 0; }
 }
-
-/* Rocket idle float */
 @keyframes rocket-float {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-8px); }
 }
 @keyframes rocket-launch {
-  0%   { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(-100vh); opacity: 0; }
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  20%  { transform: translateY(-10px) scale(1.15); }
+  100% { transform: translateY(-100vh) scale(0.8); opacity: 0; }
+}
+@keyframes scan-line {
+  from { transform: translateY(-100%); opacity: 0.8; }
+  to   { transform: translateY(200%); opacity: 0; }
+}
+@keyframes ship-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%       { transform: translateY(-12px) rotate(2deg); }
+}
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(14px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
+}
+@keyframes pixel-rain {
+  0%   { transform: translateY(-20px); opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
 }
 
-/* Progress bar fill */
-@keyframes progress-fill {
-  from { width: var(--from-width, 0%); }
-  to   { width: var(--to-width, 100%); }
-}
+/* Utility classes */
+.score-breathe      { animation: breathe-glow 2s ease-in-out infinite; }
+.streak-pulse       { animation: breathe-scale 4s ease-in-out infinite; }
+.priority-breathe   { animation: border-breathe 2s ease-in-out infinite; }
+.badge-appear       { animation: bounce-in 400ms cubic-bezier(.34,1.56,.64,1) forwards; }
+.typewriter-text    { overflow: hidden; white-space: nowrap; animation: typewriter 1s steps(20) forwards; }
+.fab-breathe        { animation: breathe-scale-fab 3s ease-in-out infinite; }
+.ship-float         { animation: ship-float 3s ease-in-out infinite; }
+.pressable          { transition: transform 60ms ease; }
+.pressable:active   { transform: scale(0.94); }
 
-/* Screen transitions */
-.screen-enter {
-  animation: slide-left 200ms ease-out forwards;
-}
-.screen-exit {
-  animation: slide-out-left 200ms ease-in forwards;
-}
-.screen-enter-back {
-  animation: slide-right 200ms ease-out forwards;
-}
-.screen-exit-back {
-  animation: slide-out-right 200ms ease-in forwards;
-}
-
-/* Input focus glow */
-input:focus, textarea:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(0,245,255,0.2);
-}
-
-/* Viewport flash overlay */
-.viewport-flash {
-  animation: flash-white 200ms ease-out forwards;
-}
-
-/* Score breathe */
-.score-breathe {
-  animation: breathe-glow 2s ease-in-out infinite;
-}
-
-/* Streak pulse */
-.streak-pulse {
-  animation: breathe-scale 4s ease-in-out infinite;
-}
-
-/* Mission priority border */
-.priority-breathe {
-  animation: border-breathe 2s ease-in-out infinite;
-}
-
-/* Badge modal slide-up + bounce */
-.badge-appear {
-  animation: bounce-in 400ms cubic-bezier(.34,1.56,.64,1) forwards;
-}
-
-/* Level name typewriter */
-.typewriter-text {
-  overflow: hidden;
-  white-space: nowrap;
-  animation: typewriter 1s steps(20) forwards;
-}
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--cyan) !important; box-shadow: 0 0 0 2px rgba(0,245,255,0.18); }
